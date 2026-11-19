@@ -1,0 +1,1765 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RupeeFlow — Personal Expense Tracker</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex flex-col selection:bg-emerald-500/30 selection:text-emerald-200">
+
+    <!-- Main Mobile Container -->
+    <div class="w-full max-w-md mx-auto flex-1 flex flex-col px-4 pt-5 pb-24">
+        
+        <!-- Top Header -->
+        <header class="flex items-center justify-between mb-5">
+            <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <i data-lucide="wallet" class="w-5 h-5 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight text-white leading-tight">RupeeFlow</h1>
+                    <p id="current-month-label" class="text-xs text-slate-400 font-medium">Loading...</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <!-- Currency Selector -->
+                <div class="relative">
+                    <select id="currency-select" onchange="changeCurrency(this.value)" aria-label="Select Currency"
+                        class="appearance-none bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 text-xs font-semibold rounded-xl pl-3 pr-7 py-2.5 focus:outline-none focus:border-emerald-500 cursor-pointer transition">
+                        <option value="INR">₹ INR</option>
+                        <option value="USD">$ USD</option>
+                        <option value="JPY">¥ YEN</option>
+                    </select>
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                </div>
+
+                <!-- Backup / Settings Button -->
+                <button onclick="openBackupModal()" class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white active:scale-95 transition" title="Backup & Restore">
+                    <i data-lucide="database-backup" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Summary Dashboard Card -->
+        <section class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800/90 border border-slate-800 rounded-3xl p-5 shadow-xl mb-5">
+            
+            <!-- Major Available Balance Hero Box -->
+            <div class="bg-slate-950/90 border border-slate-800/90 rounded-2xl p-4 mb-4">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                        <i data-lucide="landmark" class="w-3.5 h-3.5"></i>
+                        Available Balance
+                    </span>
+                    <button onclick="openBalanceModal()" class="inline-flex items-center gap-1 text-xs font-semibold text-slate-950 bg-emerald-500 hover:bg-emerald-400 active:scale-95 px-2.5 py-1 rounded-lg transition">
+                        <i data-lucide="plus" class="w-3 h-3"></i>
+                        <span>Update Balance</span>
+                    </button>
+                </div>
+
+                <div class="flex items-baseline justify-between gap-2 my-1">
+                    <h2 id="available-balance-display" class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">₹0</h2>
+                    <span id="exchange-rate-badge" class="text-[11px] font-medium text-slate-400 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-md">
+                        Live Rate
+                    </span>
+                </div>
+
+                <div class="flex items-center justify-between text-xs text-slate-400 mt-2 pt-2 border-t border-slate-800/80">
+                    <span>Starting / Added: <strong id="total-balance-display" class="text-slate-200">₹0</strong></span>
+                    <span id="balance-status-text" class="text-emerald-400 font-medium">Left after expenses</span>
+                </div>
+            </div>
+
+            <!-- Total Monthly Spend Header -->
+            <div class="flex justify-between items-center mb-1">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Monthly Spend</span>
+                <button onclick="openBudgetModal()" class="inline-flex items-center gap-1 text-xs font-medium text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 px-2.5 py-1 rounded-full transition">
+                    <i data-lucide="sliders-horizontal" class="w-3 h-3"></i>
+                    <span id="budget-btn-text">Set Budget</span>
+                </button>
+            </div>
+            
+            <div class="flex items-baseline gap-2 mb-4">
+                <h2 id="total-monthly-spend" class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">₹0</h2>
+                <span id="budget-remaining-text" class="text-xs font-medium text-slate-400 hidden"></span>
+            </div>
+
+            <!-- Optional Budget Progress Bar -->
+            <div id="budget-progress-container" class="hidden mb-4">
+                <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <div id="budget-progress-bar" class="h-full bg-emerald-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Split Breakdown: Fixed vs Custom -->
+            <div class="grid grid-cols-2 gap-3 pt-3 border-t border-slate-800/80">
+                <div class="bg-slate-950/60 rounded-2xl p-3 border border-slate-800/60">
+                    <div class="flex items-center gap-1.5 text-slate-400 text-xs font-medium mb-1">
+                        <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
+                        <span>Fixed Monthly</span>
+                    </div>
+                    <p id="fixed-total-display" class="text-base font-bold text-slate-100">₹0</p>
+                </div>
+
+                <div class="bg-slate-950/60 rounded-2xl p-3 border border-slate-800/60">
+                    <div class="flex items-center gap-1.5 text-slate-400 text-xs font-medium mb-1">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        <span>Daily / Custom</span>
+                    </div>
+                    <p id="custom-total-display" class="text-base font-bold text-slate-100">₹0</p>
+                </div>
+            </div>
+
+            <!-- Saved Monthly Quick Strip -->
+            <div class="mt-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-3.5 py-2.5 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                    <div class="w-7 h-7 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                        <i data-lucide="piggy-bank" class="w-4 h-4"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <span class="text-[11px] font-semibold text-emerald-300 block leading-tight">Saved This Month</span>
+                        <span id="dash-saved-subtext" class="text-[10px] text-slate-400 truncate block">0% of balance saved</span>
+                    </div>
+                </div>
+                <span id="dash-saved-amount" class="text-sm font-extrabold text-emerald-400 shrink-0">₹0</span>
+            </div>
+        </section>
+
+        <!-- Main Navigation Tabs -->
+        <nav class="bg-slate-900 p-1.5 rounded-2xl border border-slate-800 mb-5 space-y-1.5">
+            <div class="grid grid-cols-2 gap-1.5">
+                <button id="tab-btn-custom" onclick="switchTab('custom')" class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all bg-emerald-500 text-slate-950 shadow-md">
+                    <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+                    <span>Daily / Custom</span>
+                </button>
+                <button id="tab-btn-fixed" onclick="switchTab('fixed')" class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all text-slate-400 hover:text-white">
+                    <i data-lucide="calendar-check" class="w-4 h-4"></i>
+                    <span>Fixed Monthly</span>
+                </button>
+            </div>
+            <!-- Third Tab Option Below Them: Spending Graph & Ratio -->
+            <button id="tab-btn-graph" onclick="switchTab('graph')" class="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all text-slate-400 hover:text-white border border-transparent">
+                <i data-lucide="pie-chart" class="w-4 h-4"></i>
+                <span>Spending Graph & Ratio</span>
+            </button>
+        </nav>
+
+        <!-- ========================================== -->
+        <!-- TAB 1: DAILY / CUSTOM EXPENSES             -->
+        <!-- ========================================== -->
+        <main id="view-custom" class="flex-1 flex flex-col">
+            
+            <!-- Add Custom Expense Form -->
+            <form id="custom-expense-form" onsubmit="handleAddCustomExpense(event)" class="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 mb-5 shadow-lg">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                        <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-400"></i>
+                        Log What You Bought
+                    </h3>
+                </div>
+
+                <div class="space-y-3">
+                    <!-- Item Name -->
+                    <div>
+                        <input type="text" id="custom-name" required placeholder="What did you buy? (e.g., Groceries, Coffee)" 
+                            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-base text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition">
+                    </div>
+
+                    <!-- Amount & Category Row -->
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <div class="relative">
+                            <span class="currency-symbol-label absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-base">₹</span>
+                            <input type="number" id="custom-amount" required min="1" step="any" inputmode="decimal" placeholder="Amount" 
+                                class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-2.5 text-base text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition">
+                        </div>
+
+                        <select id="custom-category" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-base text-white focus:outline-none focus:border-emerald-500 transition">
+                            <option value="Food">🍔 Food & Dining</option>
+                            <option value="Shopping">🛍️ Shopping</option>
+                            <option value="Transport">🚕 Transport & Fuel</option>
+                            <option value="Entertainment">🎬 Entertainment</option>
+                            <option value="Health">💊 Health & Meds</option>
+                            <option value="Other">📦 Other</option>
+                        </select>
+                    </div>
+
+                    <!-- Date & Submit Row -->
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <input type="date" id="custom-date" required 
+                            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-base text-slate-200 focus:outline-none focus:border-emerald-500 transition">
+                        
+                        <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-slate-950 font-bold text-sm rounded-xl py-2.5 px-4 shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-1.5">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                            <span>Add Item</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Filter & Search Controls -->
+            <div class="flex flex-col gap-2.5 mb-3">
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs font-medium">
+                        <button id="filter-month-btn" onclick="setCustomFilter('month')" class="px-3 py-1.5 rounded-lg bg-slate-800 text-white shadow">This Month</button>
+                        <button id="filter-all-btn" onclick="setCustomFilter('all')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white">All History</button>
+                    </div>
+
+                    <select id="filter-category-select" onchange="renderCustomExpenses()" class="bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-emerald-500">
+                        <option value="ALL">All Categories</option>
+                        <option value="Food">Food & Dining</option>
+                        <option value="Shopping">Shopping</option>
+                        <option value="Transport">Transport</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Health">Health</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <!-- Search bar -->
+                <div class="relative">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                    <input type="text" id="custom-search" oninput="renderCustomExpenses()" placeholder="Search items bought..." 
+                        class="w-full bg-slate-900/70 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-base text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition">
+                </div>
+            </div>
+
+            <!-- Custom Expenses List -->
+            <div id="custom-expenses-list" class="space-y-2.5 flex-1">
+                <!-- Populated dynamically via JS -->
+            </div>
+        </main>
+
+        <!-- ========================================== -->
+        <!-- TAB 2: FIXED MONTHLY EXPENSES              -->
+        <!-- ========================================== -->
+        <main id="view-fixed" class="hidden flex-1 flex-col">
+            
+            <!-- Add / Edit Fixed Expense Form -->
+            <form id="fixed-expense-form" onsubmit="handleSaveFixedExpense(event)" class="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 mb-5 shadow-lg">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 id="fixed-form-title" class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                        <i data-lucide="repeat" class="w-4 h-4 text-indigo-400"></i>
+                        Add Fixed Monthly Bill
+                    </h3>
+                    <button type="button" id="cancel-edit-fixed-btn" onclick="cancelEditFixed()" class="hidden text-xs text-rose-400 hover:underline">Cancel Edit</button>
+                </div>
+
+                <input type="hidden" id="fixed-edit-id" value="">
+
+                <div class="space-y-3">
+                    <div>
+                        <input type="text" id="fixed-name" required placeholder="Bill Name (e.g., Rent, Wi-Fi, Gym, Netflix)" 
+                            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-base text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <div class="relative">
+                            <span class="currency-symbol-label absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-base">₹</span>
+                            <input type="number" id="fixed-amount" required min="1" step="any" inputmode="decimal" placeholder="Monthly Amount" 
+                                class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-2.5 text-base text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition">
+                        </div>
+
+                        <div class="relative">
+                            <i data-lucide="calendar" class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                            <input type="number" id="fixed-due-day" min="1" max="31" inputmode="numeric" placeholder="Due Day (1-31)" 
+                                class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-base text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="fixed-submit-btn" class="w-full bg-indigo-500 hover:bg-indigo-400 active:scale-[0.98] text-white font-bold text-sm rounded-xl py-2.5 px-4 shadow-lg shadow-indigo-500/20 transition flex items-center justify-center gap-1.5">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>Save Bill</span>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Fixed Bills Header & Reset Action -->
+            <div class="flex items-center justify-between mb-3 px-1">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Recurring Bills</span>
+                <button onclick="resetAllFixedPaidStatus()" class="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 px-3 py-1.5 rounded-xl transition">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                    <span>Reset Paid for New Month</span>
+                </button>
+            </div>
+
+            <!-- Fixed Expenses List -->
+            <div id="fixed-expenses-list" class="space-y-2.5 flex-1">
+                <!-- Populated dynamically via JS -->
+            </div>
+        </main>
+
+        <!-- ========================================== -->
+        <!-- TAB 3: SPENDING GRAPH & PERCENTAGE RATIO   -->
+        <!-- ========================================== -->
+        <main id="view-graph" class="hidden flex-1 flex-col">
+            <!-- Saved Monthly Section Card -->
+            <div class="bg-gradient-to-br from-emerald-950/60 via-slate-900 to-slate-900 border border-emerald-500/25 rounded-3xl p-5 mb-5 shadow-lg">
+                <div class="flex items-center justify-between gap-2 mb-3">
+                    <div>
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                            <i data-lucide="piggy-bank" class="w-3.5 h-3.5"></i>
+                            Saved Monthly
+                        </span>
+                        <h3 id="saved-month-title" class="text-xs text-slate-400 mt-0.5">Current Month Savings</h3>
+                    </div>
+                    <button onclick="recordMonthlySavingsSnapshot()" class="inline-flex items-center gap-1.5 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 px-3 py-1.5 rounded-xl shadow-md shadow-emerald-500/15 transition">
+                        <i data-lucide="bookmark-check" class="w-3.5 h-3.5"></i>
+                        <span>Log Month</span>
+                    </button>
+                </div>
+
+                <div class="flex items-baseline justify-between gap-2 mb-3">
+                    <div id="saved-monthly-hero" class="text-3xl font-extrabold tracking-tight text-white">₹0</div>
+                    <span id="saved-rate-badge" class="text-xs font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/25 px-2.5 py-1 rounded-full">
+                        0% Saved Rate
+                    </span>
+                </div>
+
+                <!-- Savings Breakdown Grid (From Balance vs From Budget) -->
+                <div class="grid grid-cols-2 gap-2.5 mb-3">
+                    <div class="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-3">
+                        <span class="text-[11px] text-slate-400 block">From Total Balance</span>
+                        <strong id="saved-from-balance" class="text-sm font-bold text-emerald-400 mt-0.5 block">₹0</strong>
+                    </div>
+                    <div class="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-3">
+                        <span class="text-[11px] text-slate-400 block">Under Budget Limit</span>
+                        <strong id="saved-from-budget" class="text-sm font-bold text-slate-200 mt-0.5 block">No limit set</strong>
+                    </div>
+                </div>
+
+                <!-- Saved History Log (if user has logged months) -->
+                <div id="saved-history-wrapper" class="hidden pt-3 border-t border-slate-800/80">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Monthly Savings Log</span>
+                        <span id="saved-history-total" class="text-[11px] font-bold text-emerald-400">Total: ₹0</span>
+                    </div>
+                    <div id="saved-history-list" class="space-y-1.5 max-h-40 overflow-y-auto pr-0.5">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 mb-5 shadow-lg">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                            <i data-lucide="pie-chart" class="w-4 h-4 text-sky-400"></i>
+                            Spending Breakdown
+                        </h3>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Fixed Bills vs. Daily Categories (% Ratio)</p>
+                    </div>
+                    <span id="graph-total-badge" class="text-xs font-bold text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2.5 py-1 rounded-full">
+                        ₹0
+                    </span>
+                </div>
+
+                <!-- Donut Chart & Center Stat -->
+                <div id="graph-chart-container" class="flex flex-col items-center justify-center my-2">
+                    <div class="relative w-52 h-52 flex items-center justify-center">
+                        <svg id="spending-donut-svg" viewBox="0 0 200 200" class="w-full h-full -rotate-90 transform"></svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center px-4">
+                            <span class="text-[11px] font-medium uppercase tracking-wider text-slate-400">Total Spend</span>
+                            <span id="donut-center-total" class="text-lg font-extrabold text-white mt-0.5">₹0</span>
+                            <span id="donut-center-ratio" class="text-[10px] font-semibold text-emerald-400 mt-0.5">0% Fixed • 0% Daily</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fixed vs Daily Split Summary Bar -->
+                <div id="graph-split-bar-wrapper" class="mt-4 pt-4 border-t border-slate-800/80">
+                    <div class="flex justify-between text-xs font-semibold mb-1.5">
+                        <span class="text-indigo-400 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                            Fixed: <span id="ratio-fixed-pct">0%</span>
+                        </span>
+                        <span class="text-emerald-400 flex items-center gap-1.5">
+                            Daily: <span id="ratio-daily-pct">0%</span>
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        </span>
+                    </div>
+                    <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden flex">
+                        <div id="ratio-bar-fixed" class="h-full bg-indigo-500 transition-all duration-500" style="width: 0%"></div>
+                        <div id="ratio-bar-daily" class="h-full bg-emerald-500 transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Category & Fixed Breakdown List -->
+            <div class="flex items-center justify-between mb-3 px-1">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Category Ratios</span>
+                <span class="text-[11px] text-slate-500">Sorted highest to lowest</span>
+            </div>
+
+            <div id="graph-breakdown-list" class="space-y-2.5 flex-1">
+                <!-- Populated dynamically via JS -->
+            </div>
+        </main>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL: AVAILABLE BALANCE SETTINGS          -->
+    <!-- ========================================== -->
+    <div id="balance-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-sm p-5 shadow-2xl">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i data-lucide="landmark" class="w-5 h-5 text-emerald-400"></i>
+                    Update Available Balance
+                </h3>
+                <button onclick="closeBalanceModal()" class="p-1.5 rounded-xl text-slate-400 hover:text-white bg-slate-800">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            
+            <p class="text-xs text-slate-400 mb-4">
+                Enter an amount in <strong id="balance-modal-currency" class="text-slate-200">INR (₹)</strong> to either replace your total balance or add extra funds to it.
+            </p>
+
+            <div class="relative mb-4">
+                <span class="currency-symbol-label absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
+                <input type="number" id="balance-input" min="0" step="any" inputmode="decimal" placeholder="e.g., 50000" 
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-4 py-3 text-base font-bold text-white focus:outline-none focus:border-emerald-500">
+            </div>
+
+            <div class="flex gap-2.5">
+                <button onclick="setNewBalance()" class="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition">
+                    Set Total
+                </button>
+                <button onclick="addToBalance()" class="flex-1 py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold transition">
+                    + Add Funds
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL: MONTHLY BUDGET SETTINGS             -->
+    <!-- ========================================== -->
+    <div id="budget-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-sm p-5 shadow-2xl">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i data-lucide="target" class="w-5 h-5 text-emerald-400"></i>
+                    Monthly Spending Limit
+                </h3>
+                <button onclick="closeBudgetModal()" class="p-1.5 rounded-xl text-slate-400 hover:text-white bg-slate-800">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            
+            <p class="text-xs text-slate-400 mb-4">Set an optional monthly target in <strong id="budget-modal-currency" class="text-slate-200">INR (₹)</strong> to track how much room you have left. Set to 0 to disable.</p>
+
+            <div class="relative mb-4">
+                <span class="currency-symbol-label absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
+                <input type="number" id="budget-input" min="0" step="any" inputmode="decimal" placeholder="e.g., 25000" 
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-4 py-3 text-base font-bold text-white focus:outline-none focus:border-emerald-500">
+            </div>
+
+            <div class="flex gap-2.5">
+                <button onclick="clearBudget()" class="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
+                    Remove Limit
+                </button>
+                <button onclick="saveBudget()" class="flex-1 py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold transition">
+                    Save Budget
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL: BACKUP & RESTORE DATA               -->
+    <!-- ========================================== -->
+    <div id="backup-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-sm p-5 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i data-lucide="database-backup" class="w-5 h-5 text-emerald-400"></i>
+                    Save & Backup Data
+                </h3>
+                <button onclick="closeBackupModal()" class="p-1.5 rounded-xl text-slate-400 hover:text-white bg-slate-800">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-400 mb-4 leading-relaxed">
+                Your progress saves automatically on this phone. Export a backup file or copy your data code if you switch phones or clear browser history.
+            </p>
+
+            <!-- Export Buttons -->
+            <div class="grid grid-cols-2 gap-2.5 mb-4">
+                <button onclick="downloadBackupFile()" class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25 text-xs font-semibold transition">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    <span>Download File</span>
+                </button>
+                <button onclick="copyBackupText()" class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition">
+                    <i data-lucide="copy" class="w-4 h-4"></i>
+                    <span>Copy Backup</span>
+                </button>
+            </div>
+
+            <!-- Import Section -->
+            <div class="border-t border-slate-800 pt-4">
+                <label class="block text-xs font-semibold text-slate-300 mb-2">Restore from Backup</label>
+                <textarea id="restore-textarea" rows="3" placeholder="Paste backup code here..." 
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-base text-slate-300 placeholder-slate-600 focus:outline-none focus:border-emerald-500 mb-2.5"></textarea>
+                
+                <div class="flex gap-2">
+                    <label class="flex-1 cursor-pointer flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
+                        <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                        <span>Load .json File</span>
+                        <input type="file" accept=".json" onchange="handleFileRestore(event)" class="hidden">
+                    </label>
+                    <button onclick="restoreFromText()" class="flex-1 py-2.5 px-3 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-bold transition">
+                        Restore Text
+                    </button>
+                </div>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="border-t border-slate-800 mt-4 pt-4">
+                <button onclick="confirmClearAllData()" class="w-full py-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 text-xs font-semibold transition">
+                    Reset & Wipe All Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- CUSTOM CONFIRMATION & TOAST UI (NO ALERTS) -->
+    <!-- ========================================== -->
+    <div id="confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-xs p-5 shadow-2xl text-center">
+            <div class="w-11 h-11 rounded-2xl bg-rose-500/15 text-rose-400 flex items-center justify-center mx-auto mb-3">
+                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+            </div>
+            <h4 id="confirm-title" class="text-base font-bold text-white mb-1">Are you sure?</h4>
+            <p id="confirm-message" class="text-xs text-slate-400 mb-5">This action cannot be undone.</p>
+            <div class="flex gap-2.5">
+                <button onclick="closeConfirmModal()" class="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">Cancel</button>
+                <button id="confirm-yes-btn" class="flex-1 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-400 text-white text-xs font-bold">Yes, Proceed</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 translate-y-4 transition-all duration-300">
+        <div class="bg-slate-800 border border-slate-700 text-white text-xs font-semibold px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2">
+            <span id="toast-dot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span id="toast-msg">Saved!</span>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- JAVASCRIPT LOGIC & STATE MANAGEMENT        -->
+    <!-- ========================================== -->
+    <script>
+        // Storage Key in Browser localStorage
+        const STORAGE_KEY = 'rupeeflow_expense_data_v1';
+
+        // Application State
+        let appState = {
+            fixedExpenses: [],   // { id, name, amount, paid, dueDay }
+            customExpenses: [],  // { id, name, amount, category, date }
+            savedHistory: [],    // { ym, label, savedAmount, spentAmount, balanceAmount }
+            monthlyBudget: 0,    // Number (0 means disabled)
+            totalBalance: 0,     // Total money available before deducting expenses (in current currency)
+            currency: 'INR'      // 'INR', 'USD', or 'JPY'
+        };
+
+        // Supported Currency Configurations & Fallback Exchange Rates (base: 1 USD)
+        const CURRENCY_CONFIG = {
+            INR: { symbol: '₹', locale: 'en-IN', decimals: 0, label: 'INR' },
+            USD: { symbol: '$', locale: 'en-US', decimals: 2, label: 'USD' },
+            JPY: { symbol: '¥', locale: 'ja-JP', decimals: 0, label: 'YEN' }
+        };
+
+        // Fallback rates relative to 1 USD (auto-updated live on load)
+        let exchangeRates = {
+            USD: 1,
+            INR: 84.50,
+            JPY: 154.00
+        };
+        let isLiveRateLoaded = false;
+
+        let currentTab = 'custom';
+        let customFilterMode = 'month'; // 'month' or 'all'
+        let pendingConfirmCallback = null;
+
+        // Category Styling & Icons Map
+        const CATEGORY_META = {
+            Food:          { icon: 'utensils',      color: 'text-amber-400',   bg: 'bg-amber-500/15',   hex: '#f59e0b' },
+            Shopping:      { icon: 'shopping-bag',  color: 'text-pink-400',    bg: 'bg-pink-500/15',    hex: '#ec4899' },
+            Transport:     { icon: 'car',           color: 'text-sky-400',     bg: 'bg-sky-500/15',     hex: '#0ea5e9' },
+            Entertainment: { icon: 'film',          color: 'text-purple-400',  bg: 'bg-purple-500/15',  hex: '#a855f7' },
+            Health:        { icon: 'heart-pulse',   color: 'text-rose-400',    bg: 'bg-rose-500/15',    hex: '#f43f5e' },
+            Other:         { icon: 'package',       color: 'text-emerald-400', bg: 'bg-emerald-500/15', hex: '#10b981' }
+        };
+
+        // ------------------------------------------
+        // INITIALIZATION
+        // ------------------------------------------
+        document.addEventListener('DOMContentLoaded', () => {
+            loadState();
+            syncCurrencyUI();
+            setDefaultDateToToday();
+            updateHeaderDate();
+            renderAll();
+            fetchLiveExchangeRates();
+            lucide.createIcons();
+        });
+
+        // Fetch live currency rates so conversions reflect real-time rates
+        async function fetchLiveExchangeRates() {
+            try {
+                const res = await fetch('https://open.er-api.com/v6/latest/USD');
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data && data.rates && data.rates.INR && data.rates.JPY) {
+                    exchangeRates.INR = data.rates.INR;
+                    exchangeRates.JPY = data.rates.JPY;
+                    exchangeRates.USD = 1;
+                    isLiveRateLoaded = true;
+                    updateExchangeRateBadge();
+                }
+            } catch (err) {
+                // Keep fallback rates silently if offline
+                updateExchangeRateBadge();
+            }
+        }
+
+        function updateExchangeRateBadge() {
+            const badge = document.getElementById('exchange-rate-badge');
+            if (!badge) return;
+            const curr = appState.currency;
+            if (curr === 'USD') {
+                badge.textContent = `1 USD = ₹${exchangeRates.INR.toFixed(1)} | ¥${Math.round(exchangeRates.JPY)}`;
+            } else if (curr === 'INR') {
+                badge.textContent = `1 USD = ₹${exchangeRates.INR.toFixed(1)}`;
+            } else if (curr === 'JPY') {
+                badge.textContent = `1 USD = ¥${Math.round(exchangeRates.JPY)}`;
+            }
+        }
+
+        // ------------------------------------------
+        // STORAGE & BACKUP FUNCTIONS
+        // ------------------------------------------
+        function loadState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    appState.fixedExpenses = Array.isArray(parsed.fixedExpenses) ? parsed.fixedExpenses : [];
+                    appState.customExpenses = Array.isArray(parsed.customExpenses) ? parsed.customExpenses : [];
+                    appState.savedHistory = Array.isArray(parsed.savedHistory) ? parsed.savedHistory : [];
+                    appState.monthlyBudget = Number(parsed.monthlyBudget) || 0;
+                    appState.totalBalance = Number(parsed.totalBalance) || 0;
+                    appState.currency = CURRENCY_CONFIG[parsed.currency] ? parsed.currency : 'INR';
+                }
+            } catch (err) {
+                console.error('Failed to load state from localStorage:', err);
+                showToast('Error loading saved data', true);
+            }
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+            } catch (err) {
+                console.error('Failed to save state to localStorage:', err);
+                showToast('Storage full or blocked on browser', true);
+            }
+        }
+
+        // ------------------------------------------
+        // CURRENCY HELPERS & LIVE CONVERSION
+        // ------------------------------------------
+        function convertAmount(amount, fromCurr, toCurr) {
+            if (fromCurr === toCurr) return amount;
+            const fromRate = exchangeRates[fromCurr] || 1;
+            const toRate = exchangeRates[toCurr] || 1;
+            const amountInUSD = amount / fromRate;
+            const converted = amountInUSD * toRate;
+            const decimals = CURRENCY_CONFIG[toCurr]?.decimals ?? 2;
+            return Number(converted.toFixed(decimals));
+        }
+
+        function changeCurrency(newCurrency) {
+            if (!CURRENCY_CONFIG[newCurrency] || newCurrency === appState.currency) return;
+            const oldCurrency = appState.currency;
+
+            // Auto-convert Balance, Budget, Fixed Bills, Custom Expenses, and Saved History to the new currency rate
+            appState.totalBalance = convertAmount(appState.totalBalance, oldCurrency, newCurrency);
+            appState.monthlyBudget = convertAmount(appState.monthlyBudget, oldCurrency, newCurrency);
+            appState.fixedExpenses = appState.fixedExpenses.map(item => ({
+                ...item,
+                amount: convertAmount(Number(item.amount), oldCurrency, newCurrency)
+            }));
+            appState.customExpenses = appState.customExpenses.map(item => ({
+                ...item,
+                amount: convertAmount(Number(item.amount), oldCurrency, newCurrency)
+            }));
+            appState.savedHistory = appState.savedHistory.map(item => ({
+                ...item,
+                savedAmount: convertAmount(Number(item.savedAmount), oldCurrency, newCurrency),
+                spentAmount: convertAmount(Number(item.spentAmount), oldCurrency, newCurrency),
+                balanceAmount: convertAmount(Number(item.balanceAmount), oldCurrency, newCurrency)
+            }));
+
+            appState.currency = newCurrency;
+            saveState();
+            syncCurrencyUI();
+            renderAll();
+            showToast(`Converted all amounts to ${CURRENCY_CONFIG[newCurrency].label} (${CURRENCY_CONFIG[newCurrency].symbol})`);
+        }
+
+        function syncCurrencyUI() {
+            const cfg = CURRENCY_CONFIG[appState.currency] || CURRENCY_CONFIG.INR;
+            const selectEl = document.getElementById('currency-select');
+            if (selectEl) selectEl.value = appState.currency;
+            document.querySelectorAll('.currency-symbol-label').forEach(el => {
+                el.textContent = cfg.symbol;
+            });
+            updateExchangeRateBadge();
+        }
+
+        function formatINR(amount) {
+            const num = Number(amount) || 0;
+            const cfg = CURRENCY_CONFIG[appState.currency] || CURRENCY_CONFIG.INR;
+            return cfg.symbol + num.toLocaleString(cfg.locale, {
+                minimumFractionDigits: cfg.decimals,
+                maximumFractionDigits: cfg.decimals
+            });
+        }
+
+        function getCurrentYearMonth() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            return `${year}-${month}`;
+        }
+
+        function setDefaultDateToToday() {
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            document.getElementById('custom-date').value = `${yyyy}-${mm}-${dd}`;
+        }
+
+        function updateHeaderDate() {
+            const now = new Date();
+            const formatted = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+            document.getElementById('current-month-label').textContent = `${formatted} Overview`;
+        }
+
+        // ------------------------------------------
+        // TAB & DASHBOARD UPDATES
+        // ------------------------------------------
+        function switchTab(tab) {
+            currentTab = tab;
+            const customView = document.getElementById('view-custom');
+            const fixedView = document.getElementById('view-fixed');
+            const graphView = document.getElementById('view-graph');
+            const customBtn = document.getElementById('tab-btn-custom');
+            const fixedBtn = document.getElementById('tab-btn-fixed');
+            const graphBtn = document.getElementById('tab-btn-graph');
+
+            const inactivePairClass = 'flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all text-slate-400 hover:text-white';
+            const inactiveFullClass = 'w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all text-slate-400 hover:text-white border border-transparent';
+
+            customView.classList.add('hidden');
+            customView.classList.remove('flex');
+            fixedView.classList.add('hidden');
+            fixedView.classList.remove('flex');
+            graphView.classList.add('hidden');
+            graphView.classList.remove('flex');
+
+            customBtn.className = inactivePairClass;
+            fixedBtn.className = inactivePairClass;
+            graphBtn.className = inactiveFullClass;
+
+            if (tab === 'custom') {
+                customView.classList.remove('hidden');
+                customView.classList.add('flex');
+                customBtn.className = 'flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all bg-emerald-500 text-slate-950 shadow-md';
+            } else if (tab === 'fixed') {
+                fixedView.classList.remove('hidden');
+                fixedView.classList.add('flex');
+                fixedBtn.className = 'flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all bg-indigo-500 text-white shadow-md';
+            } else if (tab === 'graph') {
+                graphView.classList.remove('hidden');
+                graphView.classList.add('flex');
+                graphBtn.className = 'w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all bg-sky-500 text-slate-950 shadow-md';
+                renderGraphView();
+            }
+        }
+
+        function updateDashboard() {
+            const currentYM = getCurrentYearMonth();
+
+            // 1. Fixed Monthly Total (all recurring bills)
+            const fixedTotal = appState.fixedExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
+
+            // 2. Custom Expenses Total for Current Month
+            const currentMonthCustomTotal = appState.customExpenses
+                .filter(item => item.date.startsWith(currentYM))
+                .reduce((sum, item) => sum + Number(item.amount), 0);
+
+            // 3. Combined Monthly Spend & Available Balance Calculation
+            const combinedTotal = fixedTotal + currentMonthCustomTotal;
+            const remainingBalance = appState.totalBalance - combinedTotal;
+
+            // Update Available Balance Hero Card
+            const availEl = document.getElementById('available-balance-display');
+            const totalBalEl = document.getElementById('total-balance-display');
+            const statusTextEl = document.getElementById('balance-status-text');
+
+            availEl.textContent = formatINR(remainingBalance);
+            totalBalEl.textContent = formatINR(appState.totalBalance);
+
+            if (remainingBalance < 0) {
+                availEl.className = 'text-3xl sm:text-4xl font-extrabold tracking-tight text-rose-400';
+                statusTextEl.className = 'text-rose-400 font-semibold';
+                statusTextEl.textContent = 'Over available balance';
+            } else {
+                availEl.className = 'text-3xl sm:text-4xl font-extrabold tracking-tight text-white';
+                statusTextEl.className = 'text-emerald-400 font-medium';
+                statusTextEl.textContent = appState.totalBalance > 0 ? 'Left after expenses' : 'Tap Update Balance to set';
+            }
+
+            // Update Dashboard Text
+            document.getElementById('total-monthly-spend').textContent = formatINR(combinedTotal);
+            document.getElementById('fixed-total-display').textContent = formatINR(fixedTotal);
+            document.getElementById('custom-total-display').textContent = formatINR(currentMonthCustomTotal);
+
+            // Update Dashboard Saved Monthly Quick Strip
+            const dashSavedAmt = document.getElementById('dash-saved-amount');
+            const dashSavedSub = document.getElementById('dash-saved-subtext');
+            if (dashSavedAmt && dashSavedSub) {
+                dashSavedAmt.textContent = formatINR(remainingBalance);
+                if (remainingBalance < 0) {
+                    dashSavedAmt.className = 'text-sm font-extrabold text-rose-400 shrink-0';
+                    dashSavedSub.textContent = 'Overspent beyond available balance';
+                } else {
+                    dashSavedAmt.className = 'text-sm font-extrabold text-emerald-400 shrink-0';
+                    const savePct = appState.totalBalance > 0
+                        ? Math.max(0, Math.round((remainingBalance / appState.totalBalance) * 100))
+                        : 0;
+                    dashSavedSub.textContent = appState.totalBalance > 0
+                        ? `${savePct}% of balance saved`
+                        : 'Set balance to track savings';
+                }
+            }
+
+            // Update Budget Progress Bar
+            const budgetBtnText = document.getElementById('budget-btn-text');
+            const budgetRemText = document.getElementById('budget-remaining-text');
+            const progressContainer = document.getElementById('budget-progress-container');
+            const progressBar = document.getElementById('budget-progress-bar');
+
+            if (appState.monthlyBudget > 0) {
+                budgetBtnText.textContent = `Budget: ${formatINR(appState.monthlyBudget)}`;
+                progressContainer.classList.remove('hidden');
+                budgetRemText.classList.remove('hidden');
+
+                const pct = Math.min((combinedTotal / appState.monthlyBudget) * 100, 100);
+                progressBar.style.width = `${pct}%`;
+
+                const remaining = appState.monthlyBudget - combinedTotal;
+                if (remaining >= 0) {
+                    budgetRemText.textContent = `(${formatINR(remaining)} left)`;
+                    budgetRemText.className = 'text-xs font-medium text-emerald-400';
+                    progressBar.className = pct > 85 
+                        ? 'h-full bg-amber-400 rounded-full transition-all duration-500' 
+                        : 'h-full bg-emerald-500 rounded-full transition-all duration-500';
+                } else {
+                    budgetRemText.textContent = `(${formatINR(Math.abs(remaining))} over!)`;
+                    budgetRemText.className = 'text-xs font-semibold text-rose-400';
+                    progressBar.className = 'h-full bg-rose-500 rounded-full transition-all duration-500';
+                }
+            } else {
+                budgetBtnText.textContent = 'Set Budget';
+                progressContainer.classList.add('hidden');
+                budgetRemText.classList.add('hidden');
+            }
+        }
+
+        function renderAll() {
+            updateDashboard();
+            renderCustomExpenses();
+            renderFixedExpenses();
+            renderGraphView();
+        }
+
+        // ------------------------------------------
+        // SPENDING GRAPH & PERCENTAGE RATIO LOGIC
+        // ------------------------------------------
+        function renderGraphView() {
+            const svg = document.getElementById('spending-donut-svg');
+            const listEl = document.getElementById('graph-breakdown-list');
+            if (!svg || !listEl) return;
+
+            const currentYM = getCurrentYearMonth();
+            const fixedTotal = appState.fixedExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
+
+            // Group current month's custom expenses by category
+            const categoryTotals = {};
+            let dailyTotal = 0;
+            appState.customExpenses
+                .filter(item => item.date.startsWith(currentYM))
+                .forEach(item => {
+                    const cat = item.category || 'Other';
+                    const amt = Number(item.amount) || 0;
+                    categoryTotals[cat] = (categoryTotals[cat] || 0) + amt;
+                    dailyTotal += amt;
+                });
+
+            const grandTotal = fixedTotal + dailyTotal;
+            const savedThisMonth = appState.totalBalance - grandTotal;
+
+            // Update Saved Monthly Section inside Graph View
+            const monthLabel = new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+            const savedTitleEl = document.getElementById('saved-month-title');
+            const savedHeroEl = document.getElementById('saved-monthly-hero');
+            const savedRateBadge = document.getElementById('saved-rate-badge');
+            const savedFromBalEl = document.getElementById('saved-from-balance');
+            const savedFromBudEl = document.getElementById('saved-from-budget');
+
+            if (savedTitleEl) savedTitleEl.textContent = `${monthLabel} Net Savings`;
+            if (savedHeroEl) {
+                savedHeroEl.textContent = formatINR(savedThisMonth);
+                savedHeroEl.className = savedThisMonth < 0
+                    ? 'text-3xl font-extrabold tracking-tight text-rose-400'
+                    : 'text-3xl font-extrabold tracking-tight text-white';
+            }
+            if (savedFromBalEl) {
+                savedFromBalEl.textContent = formatINR(savedThisMonth);
+                savedFromBalEl.className = savedThisMonth < 0
+                    ? 'text-sm font-bold text-rose-400 mt-0.5 block'
+                    : 'text-sm font-bold text-emerald-400 mt-0.5 block';
+            }
+            if (savedRateBadge) {
+                if (appState.totalBalance > 0) {
+                    const rate = Math.round((savedThisMonth / appState.totalBalance) * 100);
+                    savedRateBadge.textContent = `${rate}% Saved Rate`;
+                    savedRateBadge.className = rate < 0
+                        ? 'text-xs font-bold text-rose-300 bg-rose-500/15 border border-rose-500/25 px-2.5 py-1 rounded-full'
+                        : 'text-xs font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/25 px-2.5 py-1 rounded-full';
+                } else {
+                    savedRateBadge.textContent = 'Set Balance';
+                }
+            }
+            if (savedFromBudEl) {
+                if (appState.monthlyBudget > 0) {
+                    const underBudget = appState.monthlyBudget - grandTotal;
+                    savedFromBudEl.textContent = underBudget >= 0
+                        ? `${formatINR(underBudget)} saved`
+                        : `${formatINR(Math.abs(underBudget))} over`;
+                    savedFromBudEl.className = underBudget >= 0
+                        ? 'text-sm font-bold text-sky-400 mt-0.5 block'
+                        : 'text-sm font-bold text-rose-400 mt-0.5 block';
+                } else {
+                    savedFromBudEl.textContent = 'No limit set';
+                    savedFromBudEl.className = 'text-sm font-bold text-slate-400 mt-0.5 block';
+                }
+            }
+
+            renderSavedHistoryList();
+
+            // Update Header & Center Badges
+            document.getElementById('graph-total-badge').textContent = formatINR(grandTotal);
+            document.getElementById('donut-center-total').textContent = formatINR(grandTotal);
+
+            const fixedRatioPct = grandTotal > 0 ? Math.round((fixedTotal / grandTotal) * 100) : 0;
+            const dailyRatioPct = grandTotal > 0 ? (100 - fixedRatioPct) : 0;
+
+            document.getElementById('donut-center-ratio').textContent = `${fixedRatioPct}% Fixed • ${dailyRatioPct}% Daily`;
+            document.getElementById('ratio-fixed-pct').textContent = `${fixedRatioPct}%`;
+            document.getElementById('ratio-daily-pct').textContent = `${dailyRatioPct}%`;
+            document.getElementById('ratio-bar-fixed').style.width = `${fixedRatioPct}%`;
+            document.getElementById('ratio-bar-daily').style.width = `${dailyRatioPct}%`;
+
+            // Build Segments Array (Fixed Bills + Each Active Category)
+            const segments = [];
+            if (fixedTotal > 0) {
+                segments.push({
+                    label: 'Fixed Monthly Bills',
+                    amount: fixedTotal,
+                    hex: '#6366f1', // Indigo
+                    icon: 'calendar-check',
+                    badgeClass: 'text-indigo-400 bg-indigo-500/15'
+                });
+            }
+
+            Object.keys(categoryTotals).forEach(cat => {
+                const amt = categoryTotals[cat];
+                if (amt > 0) {
+                    const meta = CATEGORY_META[cat] || CATEGORY_META.Other;
+                    segments.push({
+                        label: cat,
+                        amount: amt,
+                        hex: meta.hex,
+                        icon: meta.icon,
+                        badgeClass: `${meta.color} ${meta.bg}`
+                    });
+                }
+            });
+
+            // Sort segments highest to lowest
+            segments.sort((a, b) => b.amount - a.amount);
+
+            // Render Donut SVG Rings
+            const radius = 74;
+            const circumference = 2 * Math.PI * radius;
+
+            if (grandTotal === 0 || segments.length === 0) {
+                svg.innerHTML = `
+                    <circle cx="100" cy="100" r="${radius}" fill="transparent" stroke="#1e293b" stroke-width="22" />
+                `;
+                listEl.innerHTML = `
+                    <div class="text-center py-10 px-4 bg-slate-900/40 border border-dashed border-slate-800 rounded-3xl">
+                        <div class="w-12 h-12 rounded-2xl bg-slate-800/80 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                            <i data-lucide="pie-chart" class="w-6 h-6"></i>
+                        </div>
+                        <p class="text-sm font-semibold text-slate-300">No spending data this month</p>
+                        <p class="text-xs text-slate-500 mt-1">Add Fixed Bills or Daily purchases to see your percentage graph.</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            let cumulativePercent = 0;
+            const gapLength = segments.length > 1 ? 3 : 0;
+
+            svg.innerHTML = segments.map(seg => {
+                const fraction = seg.amount / grandTotal;
+                const strokeLen = Math.max(0, (fraction * circumference) - gapLength);
+                const dashOffset = -cumulativePercent * circumference;
+                cumulativePercent += fraction;
+
+                return `
+                    <circle
+                        cx="100"
+                        cy="100"
+                        r="${radius}"
+                        fill="transparent"
+                        stroke="${seg.hex}"
+                        stroke-width="22"
+                        stroke-dasharray="${strokeLen} ${circumference}"
+                        stroke-dashoffset="${dashOffset}"
+                        stroke-linecap="round"
+                    />
+                `;
+            }).join('');
+
+            // Render Breakdown Percentage Rows
+            listEl.innerHTML = segments.map(seg => {
+                const exactPct = ((seg.amount / grandTotal) * 100).toFixed(1);
+                return `
+                    <div class="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-3.5">
+                        <div class="flex items-center justify-between gap-3 mb-2">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <div class="w-9 h-9 rounded-xl ${seg.badgeClass} flex items-center justify-center shrink-0">
+                                    <i data-lucide="${seg.icon}" class="w-4 h-4"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="text-sm font-semibold text-white truncate">${escapeHTML(seg.label)}</p>
+                                    <p class="text-[11px] font-medium text-slate-400">${exactPct}% of monthly spend</p>
+                                </div>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <span class="text-sm font-bold text-white block">${formatINR(seg.amount)}</span>
+                                <span class="text-[11px] font-bold" style="color: ${seg.hex}">${exactPct}%</span>
+                            </div>
+                        </div>
+                        <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full transition-all duration-500" style="width: ${exactPct}%; background-color: ${seg.hex}"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        // ------------------------------------------
+        // SAVED MONTHLY LOGGING & HISTORY
+        // ------------------------------------------
+        function recordMonthlySavingsSnapshot() {
+            const currentYM = getCurrentYearMonth();
+            const label = new Date().toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+            const fixedTotal = appState.fixedExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
+            const currentMonthCustomTotal = appState.customExpenses
+                .filter(item => item.date.startsWith(currentYM))
+                .reduce((sum, item) => sum + Number(item.amount), 0);
+            const spentAmount = fixedTotal + currentMonthCustomTotal;
+            const savedAmount = appState.totalBalance - spentAmount;
+
+            const existingIdx = appState.savedHistory.findIndex(item => item.ym === currentYM);
+            const entry = {
+                ym: currentYM,
+                label,
+                savedAmount,
+                spentAmount,
+                balanceAmount: appState.totalBalance
+            };
+
+            if (existingIdx !== -1) {
+                appState.savedHistory[existingIdx] = entry;
+            } else {
+                appState.savedHistory.unshift(entry);
+            }
+
+            saveState();
+            renderGraphView();
+            showToast(`Logged ${label} savings (${formatINR(savedAmount)})!`);
+        }
+
+        function deleteSavedHistoryEntry(ym) {
+            appState.savedHistory = appState.savedHistory.filter(item => item.ym !== ym);
+            saveState();
+            renderGraphView();
+            showToast('Removed savings log entry');
+        }
+
+        function renderSavedHistoryList() {
+            const wrapper = document.getElementById('saved-history-wrapper');
+            const listEl = document.getElementById('saved-history-list');
+            const totalEl = document.getElementById('saved-history-total');
+            if (!wrapper || !listEl || !totalEl) return;
+
+            if (!appState.savedHistory || appState.savedHistory.length === 0) {
+                wrapper.classList.add('hidden');
+                return;
+            }
+
+            wrapper.classList.remove('hidden');
+            const cumulativeSaved = appState.savedHistory.reduce((sum, item) => sum + Number(item.savedAmount), 0);
+            totalEl.textContent = `Cumulative: ${formatINR(cumulativeSaved)}`;
+
+            listEl.innerHTML = appState.savedHistory.map(entry => {
+                const isPos = entry.savedAmount >= 0;
+                return `
+                    <div class="bg-slate-950/75 border border-slate-800/80 rounded-xl px-3 py-2 flex items-center justify-between gap-2 text-xs">
+                        <div>
+                            <span class="font-bold text-slate-200">${escapeHTML(entry.label)}</span>
+                            <span class="text-[10px] text-slate-500 ml-1.5">Spent: ${formatINR(entry.spentAmount)}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-extrabold ${isPos ? 'text-emerald-400' : 'text-rose-400'}">${formatINR(entry.savedAmount)}</span>
+                            <button onclick="deleteSavedHistoryEntry('${entry.ym}')" class="text-slate-500 hover:text-rose-400 p-1 transition" title="Delete Log">
+                                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ------------------------------------------
+        // CUSTOM EXPENSES CRUD
+        // ------------------------------------------
+        function handleAddCustomExpense(e) {
+            e.preventDefault();
+            const nameInput = document.getElementById('custom-name');
+            const amountInput = document.getElementById('custom-amount');
+            const categoryInput = document.getElementById('custom-category');
+            const dateInput = document.getElementById('custom-date');
+
+            const name = nameInput.value.trim();
+            const amount = parseFloat(amountInput.value);
+            const category = categoryInput.value;
+            const date = dateInput.value;
+
+            if (!name || isNaN(amount) || amount <= 0 || !date) {
+                showToast('Please enter valid item details', true);
+                return;
+            }
+
+            const newItem = {
+                id: 'cust_' + Date.now(),
+                name,
+                amount,
+                category,
+                date
+            };
+
+            appState.customExpenses.unshift(newItem);
+            saveState();
+
+            // Reset inputs (keep date as is for rapid logging)
+            nameInput.value = '';
+            amountInput.value = '';
+            nameInput.focus();
+
+            renderAll();
+            showToast(`Added "${name}" (${formatINR(amount)})`);
+        }
+
+        function deleteCustomExpense(id) {
+            appState.customExpenses = appState.customExpenses.filter(item => item.id !== id);
+            saveState();
+            renderAll();
+            showToast('Item deleted');
+        }
+
+        function setCustomFilter(mode) {
+            customFilterMode = mode;
+            const monthBtn = document.getElementById('filter-month-btn');
+            const allBtn = document.getElementById('filter-all-btn');
+
+            if (mode === 'month') {
+                monthBtn.className = 'px-3 py-1.5 rounded-lg bg-slate-800 text-white shadow';
+                allBtn.className = 'px-3 py-1.5 rounded-lg text-slate-400 hover:text-white';
+            } else {
+                allBtn.className = 'px-3 py-1.5 rounded-lg bg-slate-800 text-white shadow';
+                monthBtn.className = 'px-3 py-1.5 rounded-lg text-slate-400 hover:text-white';
+            }
+            renderCustomExpenses();
+        }
+
+        function renderCustomExpenses() {
+            const listEl = document.getElementById('custom-expenses-list');
+            const catFilter = document.getElementById('filter-category-select').value;
+            const searchQuery = document.getElementById('custom-search').value.trim().toLowerCase();
+            const currentYM = getCurrentYearMonth();
+
+            let filtered = appState.customExpenses.filter(item => {
+                if (customFilterMode === 'month' && !item.date.startsWith(currentYM)) return false;
+                if (catFilter !== 'ALL' && item.category !== catFilter) return false;
+                if (searchQuery && !item.name.toLowerCase().includes(searchQuery)) return false;
+                return true;
+            });
+
+            // Sort newest date first
+            filtered.sort((a, b) => b.date.localeCompare(a.date));
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `
+                    <div class="text-center py-10 px-4 bg-slate-900/40 border border-dashed border-slate-800 rounded-3xl">
+                        <div class="w-12 h-12 rounded-2xl bg-slate-800/80 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                            <i data-lucide="receipt" class="w-6 h-6"></i>
+                        </div>
+                        <p class="text-sm font-semibold text-slate-300">No items logged yet</p>
+                        <p class="text-xs text-slate-500 mt-1">Use the form above to add things you bought today.</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            listEl.innerHTML = filtered.map(item => {
+                const meta = CATEGORY_META[item.category] || CATEGORY_META.Other;
+                const displayDate = new Date(item.date + 'T00:00:00').toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'short'
+                });
+
+                return `
+                    <div class="bg-slate-900/90 border border-slate-800/90 hover:border-slate-700 rounded-2xl p-3.5 flex items-center justify-between gap-3 transition">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="w-10 h-10 rounded-xl ${meta.bg} ${meta.color} flex items-center justify-center shrink-0">
+                                <i data-lucide="${meta.icon}" class="w-5 h-5"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold text-white truncate">${escapeHTML(item.name)}</p>
+                                <div class="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                                    <span>${item.category}</span>
+                                    <span>•</span>
+                                    <span>${displayDate}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2.5 shrink-0">
+                            <span class="text-sm font-bold text-white">${formatINR(item.amount)}</span>
+                            <button onclick="deleteCustomExpense('${item.id}')" class="p-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition" title="Delete Item">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        // ------------------------------------------
+        // FIXED MONTHLY EXPENSES CRUD
+        // ------------------------------------------
+        function handleSaveFixedExpense(e) {
+            e.preventDefault();
+            const editId = document.getElementById('fixed-edit-id').value;
+            const nameInput = document.getElementById('fixed-name');
+            const amountInput = document.getElementById('fixed-amount');
+            const dueDayInput = document.getElementById('fixed-due-day');
+
+            const name = nameInput.value.trim();
+            const amount = parseFloat(amountInput.value);
+            const rawDueDay = dueDayInput.value.trim();
+            const dueDay = rawDueDay !== '' ? Math.min(31, Math.max(1, parseInt(rawDueDay, 10))) : null;
+
+            if (!name || isNaN(amount) || amount <= 0) {
+                showToast('Please enter a valid bill name and amount', true);
+                return;
+            }
+
+            if (editId) {
+                // Update existing fixed expense
+                const index = appState.fixedExpenses.findIndex(item => item.id === editId);
+                if (index !== -1) {
+                    appState.fixedExpenses[index].name = name;
+                    appState.fixedExpenses[index].amount = amount;
+                    appState.fixedExpenses[index].dueDay = dueDay;
+                    showToast(`Updated "${name}"`);
+                }
+                cancelEditFixed();
+            } else {
+                // Add new fixed expense
+                appState.fixedExpenses.push({
+                    id: 'fix_' + Date.now(),
+                    name,
+                    amount,
+                    dueDay,
+                    paid: false
+                });
+                nameInput.value = '';
+                amountInput.value = '';
+                dueDayInput.value = '';
+                showToast(`Added fixed bill "${name}"`);
+            }
+
+            saveState();
+            renderAll();
+        }
+
+        function startEditFixed(id) {
+            const item = appState.fixedExpenses.find(b => b.id === id);
+            if (!item) return;
+
+            document.getElementById('fixed-edit-id').value = item.id;
+            document.getElementById('fixed-name').value = item.name;
+            document.getElementById('fixed-amount').value = item.amount;
+            document.getElementById('fixed-due-day').value = item.dueDay || '';
+
+            document.getElementById('fixed-form-title').innerHTML = `
+                <i data-lucide="edit-3" class="w-4 h-4 text-amber-400"></i>
+                Edit Monthly Bill
+            `;
+            document.getElementById('fixed-submit-btn').innerHTML = `
+                <i data-lucide="check" class="w-4 h-4"></i>
+                <span>Update Bill</span>
+            `;
+            document.getElementById('cancel-edit-fixed-btn').classList.remove('hidden');
+            document.getElementById('fixed-name').focus();
+            lucide.createIcons();
+        }
+
+        function cancelEditFixed() {
+            document.getElementById('fixed-edit-id').value = '';
+            document.getElementById('fixed-name').value = '';
+            document.getElementById('fixed-amount').value = '';
+            document.getElementById('fixed-due-day').value = '';
+
+            document.getElementById('fixed-form-title').innerHTML = `
+                <i data-lucide="repeat" class="w-4 h-4 text-indigo-400"></i>
+                Add Fixed Monthly Bill
+            `;
+            document.getElementById('fixed-submit-btn').innerHTML = `
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>Save Bill</span>
+            `;
+            document.getElementById('cancel-edit-fixed-btn').classList.add('hidden');
+            lucide.createIcons();
+        }
+
+        function toggleFixedPaid(id) {
+            const item = appState.fixedExpenses.find(b => b.id === id);
+            if (item) {
+                item.paid = !item.paid;
+                saveState();
+                renderFixedExpenses();
+                showToast(item.paid ? `Marked "${item.name}" as Paid` : `Marked "${item.name}" as Unpaid`);
+            }
+        }
+
+        function resetAllFixedPaidStatus() {
+            if (appState.fixedExpenses.length === 0) return;
+            appState.fixedExpenses.forEach(item => item.paid = false);
+            saveState();
+            renderFixedExpenses();
+            showToast('All bills reset to Unpaid for the new month!');
+        }
+
+        function deleteFixedExpense(id) {
+            appState.fixedExpenses = appState.fixedExpenses.filter(item => item.id !== id);
+            saveState();
+            renderAll();
+            showToast('Fixed bill removed');
+        }
+
+        function getDueDateBadgeHTML(dueDay, isPaid) {
+            if (!dueDay || isPaid) return '';
+
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth();
+            const todayStart = new Date(year, month, now.getDate());
+
+            // Clamp dueDay to the actual max days in the current month (e.g., 31 in Feb -> 28/29)
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const clampedDay = Math.min(dueDay, daysInMonth);
+            const dueDate = new Date(year, month, clampedDay);
+
+            const diffDays = Math.round((dueDate - todayStart) / (1000 * 60 * 60 * 24));
+
+            if (diffDays > 1) {
+                const badgeStyle = diffDays <= 3
+                    ? 'text-amber-400 bg-amber-500/15 border-amber-500/25'
+                    : 'text-sky-400 bg-sky-500/10 border-sky-500/20';
+                return `<span class="inline-flex items-center gap-1 text-[11px] font-semibold ${badgeStyle} border px-2 py-0.5 rounded-md">
+                    <i data-lucide="clock" class="w-3 h-3"></i>
+                    Due in ${diffDays} days
+                </span>`;
+            } else if (diffDays === 1) {
+                return `<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-400 bg-amber-500/15 border border-amber-500/25 px-2 py-0.5 rounded-md">
+                    <i data-lucide="clock" class="w-3 h-3"></i>
+                    Due tomorrow
+                </span>`;
+            } else if (diffDays === 0) {
+                return `<span class="inline-flex items-center gap-1 text-[11px] font-bold text-rose-400 bg-rose-500/15 border border-rose-500/30 px-2 py-0.5 rounded-md">
+                    <i data-lucide="alert-circle" class="w-3 h-3"></i>
+                    Due today
+                </span>`;
+            } else {
+                const overdueDays = Math.abs(diffDays);
+                return `<span class="inline-flex items-center gap-1 text-[11px] font-bold text-rose-400 bg-rose-500/15 border border-rose-500/30 px-2 py-0.5 rounded-md">
+                    <i data-lucide="alert-circle" class="w-3 h-3"></i>
+                    Overdue by ${overdueDays}d
+                </span>`;
+            }
+        }
+
+        function renderFixedExpenses() {
+            const listEl = document.getElementById('fixed-expenses-list');
+
+            if (appState.fixedExpenses.length === 0) {
+                listEl.innerHTML = `
+                    <div class="text-center py-10 px-4 bg-slate-900/40 border border-dashed border-slate-800 rounded-3xl">
+                        <div class="w-12 h-12 rounded-2xl bg-slate-800/80 text-indigo-400 flex items-center justify-center mx-auto mb-3">
+                            <i data-lucide="calendar-clock" class="w-6 h-6"></i>
+                        </div>
+                        <p class="text-sm font-semibold text-slate-300">No fixed monthly bills</p>
+                        <p class="text-xs text-slate-500 mt-1">Add Rent, Wi-Fi, EMI, or Subscriptions above so they stay tracked every month.</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            listEl.innerHTML = appState.fixedExpenses.map(item => {
+                const paidStyle = item.paid 
+                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' 
+                    : 'bg-slate-950 border-slate-700 text-transparent hover:border-indigo-400';
+
+                const dueBadgeHTML = getDueDateBadgeHTML(item.dueDay, item.paid);
+
+                return `
+                    <div class="bg-slate-900/90 border ${item.paid ? 'border-emerald-500/30' : 'border-slate-800'} rounded-2xl p-3.5 flex items-center justify-between gap-3 transition">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <button onclick="toggleFixedPaid('${item.id}')" class="w-7 h-7 rounded-xl border-2 ${paidStyle} flex items-center justify-center shrink-0 transition" title="Toggle Paid Status">
+                                <i data-lucide="check" class="w-4 h-4"></i>
+                            </button>
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold ${item.paid ? 'line-through text-slate-400' : 'text-white'} truncate">${escapeHTML(item.name)}</p>
+                                <div class="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                    <span class="text-xs font-medium ${item.paid ? 'text-emerald-400' : 'text-slate-400'}">
+                                        ${item.paid ? 'Paid this month' : 'Pending payment'}
+                                    </span>
+                                    ${dueBadgeHTML}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <span class="text-sm font-bold text-white mr-1">${formatINR(item.amount)}</span>
+                            <button onclick="startEditFixed('${item.id}')" class="p-2 rounded-xl text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition" title="Edit Bill">
+                                <i data-lucide="pencil" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="deleteFixedExpense('${item.id}')" class="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition" title="Delete Bill">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        // ------------------------------------------
+        // BALANCE MODAL CONTROLS
+        // ------------------------------------------
+        function openBalanceModal() {
+            const modal = document.getElementById('balance-modal');
+            const input = document.getElementById('balance-input');
+            const currLabel = document.getElementById('balance-modal-currency');
+            currLabel.textContent = `${CURRENCY_CONFIG[appState.currency].label} (${CURRENCY_CONFIG[appState.currency].symbol})`;
+            input.value = appState.totalBalance > 0 ? appState.totalBalance : '';
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            input.focus();
+        }
+
+        function closeBalanceModal() {
+            const modal = document.getElementById('balance-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function setNewBalance() {
+            const val = parseFloat(document.getElementById('balance-input').value);
+            if (isNaN(val) || val < 0) {
+                showToast('Please enter a valid balance amount', true);
+                return;
+            }
+            appState.totalBalance = val;
+            saveState();
+            updateDashboard();
+            renderGraphView();
+            closeBalanceModal();
+            showToast(`Balance set to ${formatINR(val)}`);
+        }
+
+        function addToBalance() {
+            const val = parseFloat(document.getElementById('balance-input').value);
+            if (isNaN(val) || val <= 0) {
+                showToast('Enter an amount greater than 0 to add', true);
+                return;
+            }
+            appState.totalBalance += val;
+            saveState();
+            updateDashboard();
+            renderGraphView();
+            closeBalanceModal();
+            showToast(`Added ${formatINR(val)} to balance!`);
+        }
+
+        // ------------------------------------------
+        // BUDGET MODAL CONTROLS
+        // ------------------------------------------
+        function openBudgetModal() {
+            const modal = document.getElementById('budget-modal');
+            const input = document.getElementById('budget-input');
+            const currLabel = document.getElementById('budget-modal-currency');
+            currLabel.textContent = `${CURRENCY_CONFIG[appState.currency].label} (${CURRENCY_CONFIG[appState.currency].symbol})`;
+            input.value = appState.monthlyBudget > 0 ? appState.monthlyBudget : '';
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            input.focus();
+        }
+
+        function closeBudgetModal() {
+            const modal = document.getElementById('budget-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function saveBudget() {
+            const val = parseFloat(document.getElementById('budget-input').value);
+            if (isNaN(val) || val < 0) {
+                showToast('Enter a valid budget amount', true);
+                return;
+            }
+            appState.monthlyBudget = val;
+            saveState();
+            updateDashboard();
+            renderGraphView();
+            closeBudgetModal();
+            showToast(val > 0 ? `Monthly budget set to ${formatINR(val)}` : 'Budget limit removed');
+        }
+
+        function clearBudget() {
+            appState.monthlyBudget = 0;
+            saveState();
+            updateDashboard();
+            renderGraphView();
+            closeBudgetModal();
+            showToast('Budget limit removed');
+        }
+
+        // ------------------------------------------
+        // BACKUP, EXPORT & RESTORE CONTROLS
+        // ------------------------------------------
+        function openBackupModal() {
+            const modal = document.getElementById('backup-modal');
+            document.getElementById('restore-textarea').value = '';
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeBackupModal() {
+            const modal = document.getElementById('backup-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function downloadBackupFile() {
+            const dataStr = JSON.stringify(appState, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const dateTag = new Date().toISOString().slice(0, 10);
+            a.href = url;
+            a.download = `rupeeflow-backup-${dateTag}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Backup file downloaded!');
+        }
+
+        function copyBackupText() {
+            const dataStr = JSON.stringify(appState);
+            const tempInput = document.createElement('textarea');
+            tempInput.value = dataStr;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            showToast('Backup code copied to clipboard!');
+        }
+
+        function applyRestoredData(jsonString) {
+            try {
+                const parsed = JSON.parse(jsonString);
+                if (!parsed || typeof parsed !== 'object') throw new Error('Invalid JSON');
+                
+                appState.fixedExpenses = Array.isArray(parsed.fixedExpenses) ? parsed.fixedExpenses : [];
+                appState.customExpenses = Array.isArray(parsed.customExpenses) ? parsed.customExpenses : [];
+                appState.savedHistory = Array.isArray(parsed.savedHistory) ? parsed.savedHistory : [];
+                appState.monthlyBudget = Number(parsed.monthlyBudget) || 0;
+                appState.totalBalance = Number(parsed.totalBalance) || 0;
+                appState.currency = CURRENCY_CONFIG[parsed.currency] ? parsed.currency : 'INR';
+                
+                saveState();
+                syncCurrencyUI();
+                renderAll();
+                closeBackupModal();
+                showToast('Data restored successfully!');
+            } catch (err) {
+                showToast('Invalid backup format. Please check your data.', true);
+            }
+        }
+
+        function restoreFromText() {
+            const text = document.getElementById('restore-textarea').value.trim();
+            if (!text) {
+                showToast('Paste your backup code first', true);
+                return;
+            }
+            applyRestoredData(text);
+        }
+
+        function handleFileRestore(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                applyRestoredData(e.target.result);
+            };
+            reader.readAsText(file);
+        }
+
+        function confirmClearAllData() {
+            closeBackupModal();
+            openConfirmModal(
+                'Wipe All Data?',
+                'This will permanently delete all your fixed bills, custom items, and budget settings on this phone.',
+                () => {
+                    appState = { fixedExpenses: [], customExpenses: [], savedHistory: [], monthlyBudget: 0, totalBalance: 0, currency: appState.currency };
+                    saveState();
+                    renderAll();
+                    showToast('All data wiped clean');
+                }
+            );
+        }
+
+        // ------------------------------------------
+        // CUSTOM CONFIRMATION & TOAST HELPERS
+        // ------------------------------------------
+        function openConfirmModal(title, message, onConfirm) {
+            document.getElementById('confirm-title').textContent = title;
+            document.getElementById('confirm-message').textContent = message;
+            pendingConfirmCallback = onConfirm;
+
+            const modal = document.getElementById('confirm-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeConfirmModal() {
+            const modal = document.getElementById('confirm-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            pendingConfirmCallback = null;
+        }
+
+        document.getElementById('confirm-yes-btn').addEventListener('click', () => {
+            if (typeof pendingConfirmCallback === 'function') {
+                pendingConfirmCallback();
+            }
+            closeConfirmModal();
+        });
+
+        let toastTimer = null;
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const msgEl = document.getElementById('toast-msg');
+            const dotEl = document.getElementById('toast-dot');
+
+            msgEl.textContent = message;
+            dotEl.className = isError ? 'w-2 h-2 rounded-full bg-rose-400' : 'w-2 h-2 rounded-full bg-emerald-400';
+
+            toast.classList.remove('opacity-0', 'translate-y-4');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'translate-y-4');
+            }, 2600);
+        }
+
+        function escapeHTML(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>
