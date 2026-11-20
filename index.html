@@ -45,7 +45,7 @@
                 <!-- Currency Selector -->
                 <div class="relative">
                     <select id="currency-select" onchange="changeCurrency(this.value)" aria-label="Select Currency"
-                        class="appearance-none bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 text-xs font-semibold rounded-xl pl-3 pr-7 py-2.5 focus:outline-none focus:border-emerald-500 cursor-pointer transition">
+                        class="appearance-none bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 text-base font-semibold rounded-xl pl-3 pr-7 py-2 focus:outline-none focus:border-emerald-500 cursor-pointer transition">
                         <option value="INR">₹ INR</option>
                         <option value="USD">$ USD</option>
                         <option value="JPY">¥ YEN</option>
@@ -142,6 +142,51 @@
                 </div>
                 <span id="dash-saved-amount" class="text-sm font-extrabold text-emerald-400 shrink-0">₹0</span>
             </div>
+
+            <!-- Collapsible Wishlist Dropdown Section -->
+            <div class="mt-3 bg-slate-950/70 border border-slate-800/90 rounded-2xl overflow-hidden transition-all">
+                <!-- Dropdown Header Toggle -->
+                <button type="button" onclick="toggleWishlistDropdown()" class="w-full px-3.5 py-2.5 flex items-center justify-between gap-2 hover:bg-slate-900/60 transition text-left">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <div class="w-7 h-7 rounded-xl bg-purple-500/15 text-purple-400 flex items-center justify-center shrink-0">
+                            <i data-lucide="sparkles" class="w-4 h-4"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <span class="text-[11px] font-semibold text-slate-200 block leading-tight">Wishlist — Things to Buy</span>
+                            <span id="wishlist-summary-subtext" class="text-[10px] text-slate-400 truncate block">0 items saved</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <span id="wishlist-affordable-badge" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">0 Ready</span>
+                        <i id="wishlist-chevron" data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform duration-200"></i>
+                    </div>
+                </button>
+
+                <!-- Dropdown Body -->
+                <div id="wishlist-dropdown-body" class="hidden px-3.5 pb-3.5 pt-2 border-t border-slate-800/80 space-y-3">
+                    <!-- Add Wishlist Item Form -->
+                    <form onsubmit="handleAddWishlistItem(event)" class="flex flex-col sm:flex-row gap-2">
+                        <input type="text" id="wishlist-name" required placeholder="Item to buy (e.g., Headphones)"
+                            class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-base text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 transition">
+                        <div class="flex gap-2">
+                            <div class="relative flex-1 sm:w-28">
+                                <span class="currency-symbol-label absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-base">₹</span>
+                                <input type="number" id="wishlist-price" required min="0.01" step="any" inputmode="decimal" placeholder="Price"
+                                    class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-7 pr-2.5 py-2 text-base text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 transition">
+                            </div>
+                            <button type="submit" class="bg-purple-500 hover:bg-purple-400 active:scale-95 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center justify-center gap-1 shrink-0">
+                                <i data-lucide="plus" class="w-4 h-4"></i>
+                                <span>Add</span>
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Wishlist Items Container -->
+                    <div id="wishlist-items-list" class="space-y-2 max-h-56 overflow-y-auto pr-0.5">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+                </div>
+            </div>
         </section>
 
         <!-- Main Navigation Tabs -->
@@ -168,14 +213,17 @@
         <!-- ========================================== -->
         <main id="view-custom" class="flex-1 flex flex-col">
             
-            <!-- Add Custom Expense Form -->
-            <form id="custom-expense-form" onsubmit="handleAddCustomExpense(event)" class="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 mb-5 shadow-lg">
+            <!-- Add / Edit Custom Expense Form -->
+            <form id="custom-expense-form" onsubmit="handleSaveCustomExpense(event)" class="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 mb-5 shadow-lg">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                    <h3 id="custom-form-title" class="text-sm font-bold text-slate-200 flex items-center gap-2">
                         <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-400"></i>
                         Log What You Bought
                     </h3>
+                    <button type="button" id="cancel-edit-custom-btn" onclick="cancelEditCustom()" class="hidden text-xs text-rose-400 hover:underline">Cancel Edit</button>
                 </div>
+
+                <input type="hidden" id="custom-edit-id" value="">
 
                 <div class="space-y-3">
                     <!-- Item Name -->
@@ -188,7 +236,7 @@
                     <div class="grid grid-cols-2 gap-2.5">
                         <div class="relative">
                             <span class="currency-symbol-label absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-base">₹</span>
-                            <input type="number" id="custom-amount" required min="1" step="any" inputmode="decimal" placeholder="Amount" 
+                            <input type="number" id="custom-amount" required min="0.01" step="any" inputmode="decimal" placeholder="Amount" 
                                 class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-2.5 text-base text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition">
                         </div>
 
@@ -207,7 +255,7 @@
                         <input type="date" id="custom-date" required 
                             class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-base text-slate-200 focus:outline-none focus:border-emerald-500 transition">
                         
-                        <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-slate-950 font-bold text-sm rounded-xl py-2.5 px-4 shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-1.5">
+                        <button type="submit" id="custom-submit-btn" class="w-full bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-slate-950 font-bold text-sm rounded-xl py-2.5 px-4 shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-1.5">
                             <i data-lucide="plus" class="w-4 h-4"></i>
                             <span>Add Item</span>
                         </button>
@@ -223,8 +271,9 @@
                         <button id="filter-all-btn" onclick="setCustomFilter('all')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white">All History</button>
                     </div>
 
-                    <select id="filter-category-select" onchange="renderCustomExpenses()" class="bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-emerald-500">
+                    <select id="filter-category-select" onchange="renderCustomExpenses()" class="bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5 text-base text-slate-300 focus:outline-none focus:border-emerald-500">
                         <option value="ALL">All Categories</option>
+                        <option value="Fixed">📅 Fixed Bills</option>
                         <option value="Food">Food & Dining</option>
                         <option value="Shopping">Shopping</option>
                         <option value="Transport">Transport</option>
@@ -274,7 +323,7 @@
                     <div class="grid grid-cols-2 gap-2.5">
                         <div class="relative">
                             <span class="currency-symbol-label absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-base">₹</span>
-                            <input type="number" id="fixed-amount" required min="1" step="any" inputmode="decimal" placeholder="Monthly Amount" 
+                            <input type="number" id="fixed-amount" required min="0.01" step="any" inputmode="decimal" placeholder="Monthly Amount" 
                                 class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-2.5 text-base text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition">
                         </div>
 
@@ -436,7 +485,7 @@
             </p>
 
             <div class="relative mb-4">
-                <span class="currency-symbol-label absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
+                <span class="currency-symbol-label absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-base">₹</span>
                 <input type="number" id="balance-input" min="0" step="any" inputmode="decimal" placeholder="e.g., 50000" 
                     class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-4 py-3 text-base font-bold text-white focus:outline-none focus:border-emerald-500">
             </div>
@@ -470,7 +519,7 @@
             <p class="text-xs text-slate-400 mb-4">Set an optional monthly target in <strong id="budget-modal-currency" class="text-slate-200">INR (₹)</strong> to track how much room you have left. Set to 0 to disable.</p>
 
             <div class="relative mb-4">
-                <span class="currency-symbol-label absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
+                <span class="currency-symbol-label absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-base">₹</span>
                 <input type="number" id="budget-input" min="0" step="any" inputmode="decimal" placeholder="e.g., 25000" 
                     class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-4 py-3 text-base font-bold text-white focus:outline-none focus:border-emerald-500">
             </div>
@@ -580,6 +629,7 @@
         let appState = {
             fixedExpenses: [],   // { id, name, amount, paid, dueDay }
             customExpenses: [],  // { id, name, amount, category, date }
+            wishlistItems: [],   // { id, name, price }
             savedHistory: [],    // { ym, label, savedAmount, spentAmount, balanceAmount }
             monthlyBudget: 0,    // Number (0 means disabled)
             totalBalance: 0,     // Total money available before deducting expenses (in current currency)
@@ -603,10 +653,12 @@
 
         let currentTab = 'custom';
         let customFilterMode = 'month'; // 'month' or 'all'
+        let isWishlistOpen = false;
         let pendingConfirmCallback = null;
 
         // Category Styling & Icons Map
         const CATEGORY_META = {
+            Fixed:         { icon: 'calendar-check', color: 'text-indigo-400',  bg: 'bg-indigo-500/15',  hex: '#6366f1' },
             Food:          { icon: 'utensils',      color: 'text-amber-400',   bg: 'bg-amber-500/15',   hex: '#f59e0b' },
             Shopping:      { icon: 'shopping-bag',  color: 'text-pink-400',    bg: 'bg-pink-500/15',    hex: '#ec4899' },
             Transport:     { icon: 'car',           color: 'text-sky-400',     bg: 'bg-sky-500/15',     hex: '#0ea5e9' },
@@ -670,6 +722,7 @@
                     const parsed = JSON.parse(raw);
                     appState.fixedExpenses = Array.isArray(parsed.fixedExpenses) ? parsed.fixedExpenses : [];
                     appState.customExpenses = Array.isArray(parsed.customExpenses) ? parsed.customExpenses : [];
+                    appState.wishlistItems = Array.isArray(parsed.wishlistItems) ? parsed.wishlistItems : [];
                     appState.savedHistory = Array.isArray(parsed.savedHistory) ? parsed.savedHistory : [];
                     appState.monthlyBudget = Number(parsed.monthlyBudget) || 0;
                     appState.totalBalance = Number(parsed.totalBalance) || 0;
@@ -717,6 +770,10 @@
             appState.customExpenses = appState.customExpenses.map(item => ({
                 ...item,
                 amount: convertAmount(Number(item.amount), oldCurrency, newCurrency)
+            }));
+            appState.wishlistItems = appState.wishlistItems.map(item => ({
+                ...item,
+                price: convertAmount(Number(item.price), oldCurrency, newCurrency)
             }));
             appState.savedHistory = appState.savedHistory.map(item => ({
                 ...item,
@@ -820,9 +877,9 @@
             // 1. Fixed Monthly Total (all recurring bills)
             const fixedTotal = appState.fixedExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
 
-            // 2. Custom Expenses Total for Current Month
+            // 2. Custom Expenses Total for Current Month (exclude Fixed Bill logs to prevent double-counting)
             const currentMonthCustomTotal = appState.customExpenses
-                .filter(item => item.date.startsWith(currentYM))
+                .filter(item => item.date.startsWith(currentYM) && !item.fromFixed)
                 .reduce((sum, item) => sum + Number(item.amount), 0);
 
             // 3. Combined Monthly Spend & Available Balance Calculation
@@ -906,9 +963,177 @@
 
         function renderAll() {
             updateDashboard();
+            renderWishlist();
             renderCustomExpenses();
             renderFixedExpenses();
             renderGraphView();
+        }
+
+        // ------------------------------------------
+        // WISHLIST DROPDOWN & AFFORDABILITY LOGIC
+        // ------------------------------------------
+        function getRemainingBalance() {
+            const currentYM = getCurrentYearMonth();
+            const fixedTotal = appState.fixedExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
+            const currentMonthCustomTotal = appState.customExpenses
+                .filter(item => item.date.startsWith(currentYM) && !item.fromFixed)
+                .reduce((sum, item) => sum + Number(item.amount), 0);
+            return appState.totalBalance - (fixedTotal + currentMonthCustomTotal);
+        }
+
+        function toggleWishlistDropdown() {
+            isWishlistOpen = !isWishlistOpen;
+            const body = document.getElementById('wishlist-dropdown-body');
+            const chevron = document.getElementById('wishlist-chevron');
+            if (!body || !chevron) return;
+
+            if (isWishlistOpen) {
+                body.classList.remove('hidden');
+                chevron.classList.add('rotate-180');
+            } else {
+                body.classList.add('hidden');
+                chevron.classList.remove('rotate-180');
+            }
+        }
+
+        function handleAddWishlistItem(e) {
+            e.preventDefault();
+            const nameInput = document.getElementById('wishlist-name');
+            const priceInput = document.getElementById('wishlist-price');
+
+            const name = nameInput.value.trim();
+            const price = parseFloat(priceInput.value);
+
+            if (!name || isNaN(price) || price <= 0) {
+                showToast('Enter a valid item name and price', true);
+                return;
+            }
+
+            appState.wishlistItems.unshift({
+                id: 'wish_' + Date.now(),
+                name,
+                price
+            });
+
+            nameInput.value = '';
+            priceInput.value = '';
+            saveState();
+            renderWishlist();
+            showToast(`Added "${name}" to wishlist`);
+        }
+
+        function removeWishlistItem(id) {
+            appState.wishlistItems = appState.wishlistItems.filter(item => item.id !== id);
+            saveState();
+            renderWishlist();
+            showToast('Removed from wishlist');
+        }
+
+        function purchaseWishlistItem(id) {
+            const item = appState.wishlistItems.find(w => w.id === id);
+            if (!item) return;
+
+            const today = document.getElementById('custom-date').value || new Date().toISOString().slice(0, 10);
+
+            // Log purchased wishlist item into Daily / Custom expenses under "Other"
+            appState.customExpenses.unshift({
+                id: 'cust_' + Date.now(),
+                name: item.name,
+                amount: Number(item.price),
+                category: 'Other',
+                date: today,
+                fromWishlist: true
+            });
+
+            // Remove item from wishlist now that it has been bought
+            appState.wishlistItems = appState.wishlistItems.filter(w => w.id !== id);
+
+            saveState();
+            renderAll();
+            showToast(`Bought "${item.name}" — logged under Other!`);
+        }
+
+        function renderWishlist() {
+            const listEl = document.getElementById('wishlist-items-list');
+            const subtextEl = document.getElementById('wishlist-summary-subtext');
+            const badgeEl = document.getElementById('wishlist-affordable-badge');
+            if (!listEl) return;
+
+            const remainingBalance = getRemainingBalance();
+            const totalCount = appState.wishlistItems.length;
+            let affordableCount = 0;
+
+            appState.wishlistItems.forEach(item => {
+                if (remainingBalance >= Number(item.price)) {
+                    affordableCount++;
+                }
+            });
+
+            if (subtextEl) {
+                subtextEl.textContent = totalCount === 0
+                    ? '0 items saved'
+                    : `${totalCount} item${totalCount > 1 ? 's' : ''} • ${affordableCount} affordable`;
+            }
+
+            if (badgeEl) {
+                if (totalCount > 0 && affordableCount > 0) {
+                    badgeEl.textContent = `${affordableCount} Ready`;
+                    badgeEl.classList.remove('hidden');
+                } else {
+                    badgeEl.classList.add('hidden');
+                }
+            }
+
+            if (totalCount === 0) {
+                listEl.innerHTML = `
+                    <div class="text-center py-4 px-3 bg-slate-900/50 border border-dashed border-slate-800 rounded-xl">
+                        <p class="text-[11px] font-medium text-slate-400">Your wishlist is empty</p>
+                        <p class="text-[10px] text-slate-500 mt-0.5">Add items you want to buy above to check if your balance covers them.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listEl.innerHTML = appState.wishlistItems.map(item => {
+                const price = Number(item.price) || 0;
+                const canAfford = remainingBalance >= price;
+                const deficit = price - remainingBalance;
+
+                const statusBtnClass = canAfford
+                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 shadow-sm shadow-emerald-500/10'
+                    : 'bg-rose-500/15 border-rose-500/40 text-rose-300 shadow-sm shadow-rose-500/10';
+                const dotClass = canAfford
+                    ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.85)]'
+                    : 'bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.85)]';
+                const statusLabel = canAfford
+                    ? 'Enough Funds'
+                    : `Need ${formatINR(deficit)}`;
+
+                return `
+                    <div class="bg-slate-900/95 border border-slate-800 rounded-xl px-3 py-2.5 flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <button type="button" onclick="purchaseWishlistItem('${item.id}')" class="w-6 h-6 rounded-lg border-2 border-slate-600 hover:border-emerald-400 bg-slate-950 text-transparent hover:text-emerald-400 flex items-center justify-center shrink-0 transition" title="Mark as Bought (Adds to Other)">
+                                <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <div class="min-w-0">
+                                <p class="text-xs font-semibold text-white truncate">${escapeHTML(item.name)}</p>
+                                <p class="text-[11px] font-bold text-slate-400 mt-0.5">${formatINR(price)}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold ${statusBtnClass}" title="${canAfford ? 'You have enough Available Balance to buy this!' : 'Not enough Available Balance yet'}">
+                                <span class="w-2 h-2 rounded-full ${dotClass}"></span>
+                                <span>${statusLabel}</span>
+                            </span>
+                            <button type="button" onclick="removeWishlistItem('${item.id}')" class="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition" title="Remove from wishlist">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
         }
 
         // ------------------------------------------
@@ -922,11 +1147,11 @@
             const currentYM = getCurrentYearMonth();
             const fixedTotal = appState.fixedExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
 
-            // Group current month's custom expenses by category
+            // Group current month's custom expenses by category (exclude Fixed Bill logs since fixedTotal handles them)
             const categoryTotals = {};
             let dailyTotal = 0;
             appState.customExpenses
-                .filter(item => item.date.startsWith(currentYM))
+                .filter(item => item.date.startsWith(currentYM) && !item.fromFixed)
                 .forEach(item => {
                     const cat = item.category || 'Other';
                     const amt = Number(item.amount) || 0;
@@ -1111,7 +1336,7 @@
             const label = new Date().toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
             const fixedTotal = appState.fixedExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
             const currentMonthCustomTotal = appState.customExpenses
-                .filter(item => item.date.startsWith(currentYM))
+                .filter(item => item.date.startsWith(currentYM) && !item.fromFixed)
                 .reduce((sum, item) => sum + Number(item.amount), 0);
             const spentAmount = fixedTotal + currentMonthCustomTotal;
             const savedAmount = appState.totalBalance - spentAmount;
@@ -1178,10 +1403,11 @@
         }
 
         // ------------------------------------------
-        // CUSTOM EXPENSES CRUD
+        // CUSTOM EXPENSES CRUD (ADD, EDIT, DELETE)
         // ------------------------------------------
-        function handleAddCustomExpense(e) {
+        function handleSaveCustomExpense(e) {
             e.preventDefault();
+            const editId = document.getElementById('custom-edit-id').value;
             const nameInput = document.getElementById('custom-name');
             const amountInput = document.getElementById('custom-amount');
             const categoryInput = document.getElementById('custom-category');
@@ -1197,27 +1423,90 @@
                 return;
             }
 
-            const newItem = {
-                id: 'cust_' + Date.now(),
-                name,
-                amount,
-                category,
-                date
-            };
+            if (editId) {
+                const index = appState.customExpenses.findIndex(item => item.id === editId);
+                if (index !== -1) {
+                    appState.customExpenses[index] = {
+                        ...appState.customExpenses[index],
+                        name,
+                        amount,
+                        category,
+                        date
+                    };
+                    showToast(`Updated "${name}"`);
+                }
+                cancelEditCustom();
+            } else {
+                const newItem = {
+                    id: 'cust_' + Date.now(),
+                    name,
+                    amount,
+                    category,
+                    date
+                };
+                appState.customExpenses.unshift(newItem);
+                nameInput.value = '';
+                amountInput.value = '';
+                nameInput.focus();
+                showToast(`Added "${name}" (${formatINR(amount)})`);
+            }
 
-            appState.customExpenses.unshift(newItem);
             saveState();
-
-            // Reset inputs (keep date as is for rapid logging)
-            nameInput.value = '';
-            amountInput.value = '';
-            nameInput.focus();
-
             renderAll();
-            showToast(`Added "${name}" (${formatINR(amount)})`);
+        }
+
+        function startEditCustom(id) {
+            const item = appState.customExpenses.find(c => c.id === id);
+            if (!item) return;
+
+            document.getElementById('custom-edit-id').value = item.id;
+            document.getElementById('custom-name').value = item.name;
+            document.getElementById('custom-amount').value = item.amount;
+            document.getElementById('custom-category').value = item.category || 'Other';
+            document.getElementById('custom-date').value = item.date;
+
+            document.getElementById('custom-form-title').innerHTML = `
+                <i data-lucide="edit-3" class="w-4 h-4 text-amber-400"></i>
+                Edit Purchased Item
+            `;
+            document.getElementById('custom-submit-btn').innerHTML = `
+                <i data-lucide="check" class="w-4 h-4"></i>
+                <span>Update Item</span>
+            `;
+            document.getElementById('cancel-edit-custom-btn').classList.remove('hidden');
+            document.getElementById('custom-name').focus();
+            lucide.createIcons();
+        }
+
+        function cancelEditCustom() {
+            document.getElementById('custom-edit-id').value = '';
+            document.getElementById('custom-name').value = '';
+            document.getElementById('custom-amount').value = '';
+            setDefaultDateToToday();
+
+            document.getElementById('custom-form-title').innerHTML = `
+                <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-400"></i>
+                Log What You Bought
+            `;
+            document.getElementById('custom-submit-btn').innerHTML = `
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>Add Item</span>
+            `;
+            document.getElementById('cancel-edit-custom-btn').classList.add('hidden');
+            lucide.createIcons();
         }
 
         function deleteCustomExpense(id) {
+            if (document.getElementById('custom-edit-id').value === id) {
+                cancelEditCustom();
+            }
+            const target = appState.customExpenses.find(item => item.id === id);
+            if (target && target.fromFixed && target.fixedId) {
+                const fixedBill = appState.fixedExpenses.find(b => b.id === target.fixedId);
+                if (fixedBill && target.date.startsWith(getCurrentYearMonth())) {
+                    fixedBill.paid = false;
+                }
+            }
             appState.customExpenses = appState.customExpenses.filter(item => item.id !== id);
             saveState();
             renderAll();
@@ -1271,6 +1560,12 @@
 
             listEl.innerHTML = filtered.map(item => {
                 const meta = CATEGORY_META[item.category] || CATEGORY_META.Other;
+                const isWishlistPurchase = Boolean(item.fromWishlist);
+                const wishlistBadgeHTML = isWishlistPurchase
+                    ? `<span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-pink-500/20 text-pink-400 shrink-0" title="Purchased from Wishlist">
+                        <i data-lucide="sparkles" class="w-2.5 h-2.5"></i>
+                       </span>`
+                    : '';
                 const displayDate = new Date(item.date + 'T00:00:00').toLocaleDateString('en-IN', {
                     day: 'numeric',
                     month: 'short'
@@ -1283,17 +1578,23 @@
                                 <i data-lucide="${meta.icon}" class="w-5 h-5"></i>
                             </div>
                             <div class="min-w-0">
-                                <p class="text-sm font-semibold text-white truncate">${escapeHTML(item.name)}</p>
+                                <div class="flex items-center gap-1.5 min-w-0">
+                                    <p class="text-sm font-semibold text-white truncate">${escapeHTML(item.name)}</p>
+                                    ${wishlistBadgeHTML}
+                                </div>
                                 <div class="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
-                                    <span>${item.category}</span>
+                                    <span>${item.fromFixed ? 'Fixed Bill' : item.category}</span>
                                     <span>•</span>
                                     <span>${displayDate}</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-2.5 shrink-0">
-                            <span class="text-sm font-bold text-white">${formatINR(item.amount)}</span>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <span class="text-sm font-bold text-white mr-1">${formatINR(item.amount)}</span>
+                            ${item.fromFixed ? '' : `<button onclick="startEditCustom('${item.id}')" class="p-2 rounded-xl text-slate-500 hover:text-emerald-400 hover:bg-emerald-500/10 transition" title="Edit Item">
+                                <i data-lucide="pencil" class="w-4 h-4"></i>
+                            </button>`}
                             <button onclick="deleteCustomExpense('${item.id}')" class="p-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition" title="Delete Item">
                                 <i data-lucide="trash-2" class="w-4 h-4"></i>
                             </button>
@@ -1396,23 +1697,50 @@
 
         function toggleFixedPaid(id) {
             const item = appState.fixedExpenses.find(b => b.id === id);
-            if (item) {
-                item.paid = !item.paid;
-                saveState();
-                renderFixedExpenses();
-                showToast(item.paid ? `Marked "${item.name}" as Paid` : `Marked "${item.name}" as Unpaid`);
+            if (!item) return;
+
+            item.paid = !item.paid;
+            const currentYM = getCurrentYearMonth();
+
+            if (item.paid) {
+                const today = new Date().toISOString().slice(0, 10);
+                // Avoid duplicate log for the same bill in the same month
+                appState.customExpenses = appState.customExpenses.filter(
+                    c => !(c.fromFixed && c.fixedId === item.id && c.date.startsWith(currentYM))
+                );
+                appState.customExpenses.unshift({
+                    id: 'fixlog_' + Date.now(),
+                    name: item.name,
+                    amount: Number(item.amount),
+                    category: 'Fixed',
+                    date: today,
+                    fromFixed: true,
+                    fixedId: item.id
+                });
+            } else {
+                // Remove this month's auto-logged entry if unticked
+                appState.customExpenses = appState.customExpenses.filter(
+                    c => !(c.fromFixed && c.fixedId === item.id && c.date.startsWith(currentYM))
+                );
             }
+
+            saveState();
+            renderAll();
+            showToast(item.paid ? `Marked "${item.name}" as Paid & logged to history` : `Marked "${item.name}" as Unpaid`);
         }
 
         function resetAllFixedPaidStatus() {
             if (appState.fixedExpenses.length === 0) return;
             appState.fixedExpenses.forEach(item => item.paid = false);
             saveState();
-            renderFixedExpenses();
+            renderAll();
             showToast('All bills reset to Unpaid for the new month!');
         }
 
         function deleteFixedExpense(id) {
+            if (document.getElementById('fixed-edit-id').value === id) {
+                cancelEditFixed();
+            }
             appState.fixedExpenses = appState.fixedExpenses.filter(item => item.id !== id);
             saveState();
             renderAll();
@@ -1547,6 +1875,7 @@
             appState.totalBalance = val;
             saveState();
             updateDashboard();
+            renderWishlist();
             renderGraphView();
             closeBalanceModal();
             showToast(`Balance set to ${formatINR(val)}`);
@@ -1561,6 +1890,7 @@
             appState.totalBalance += val;
             saveState();
             updateDashboard();
+            renderWishlist();
             renderGraphView();
             closeBalanceModal();
             showToast(`Added ${formatINR(val)} to balance!`);
@@ -1658,6 +1988,7 @@
                 
                 appState.fixedExpenses = Array.isArray(parsed.fixedExpenses) ? parsed.fixedExpenses : [];
                 appState.customExpenses = Array.isArray(parsed.customExpenses) ? parsed.customExpenses : [];
+                appState.wishlistItems = Array.isArray(parsed.wishlistItems) ? parsed.wishlistItems : [];
                 appState.savedHistory = Array.isArray(parsed.savedHistory) ? parsed.savedHistory : [];
                 appState.monthlyBudget = Number(parsed.monthlyBudget) || 0;
                 appState.totalBalance = Number(parsed.totalBalance) || 0;
@@ -1698,7 +2029,7 @@
                 'Wipe All Data?',
                 'This will permanently delete all your fixed bills, custom items, and budget settings on this phone.',
                 () => {
-                    appState = { fixedExpenses: [], customExpenses: [], savedHistory: [], monthlyBudget: 0, totalBalance: 0, currency: appState.currency };
+                    appState = { fixedExpenses: [], customExpenses: [], wishlistItems: [], savedHistory: [], monthlyBudget: 0, totalBalance: 0, currency: appState.currency };
                     saveState();
                     renderAll();
                     showToast('All data wiped clean');
